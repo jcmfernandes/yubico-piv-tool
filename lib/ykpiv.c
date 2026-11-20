@@ -1118,6 +1118,7 @@ ykpiv_rc _ykpiv_begin_transaction(ykpiv_state *state) {
 
   if(retries) {
     uint32_t serial = state->serial;
+    ykpiv_version_t ver = state->ver;
     state->serial = 0;
     state->ver.major = 0;
     state->ver.minor = 0;
@@ -1146,6 +1147,10 @@ ykpiv_rc _ykpiv_begin_transaction(ykpiv_state *state) {
     }
     return YKPIV_OK;
 Cleanup:
+    // Keep comparing against the expected card on the next reset, rather
+    // than 0, which matches a card whose serial can't be read.
+    state->serial = serial;
+    state->ver = ver;
     // Callers only end the transaction when this succeeds.
     _ykpiv_end_transaction(state);
     return res;
