@@ -1124,25 +1124,31 @@ ykpiv_rc _ykpiv_begin_transaction(ykpiv_state *state) {
     state->ver.patch = 0;
     ykpiv_rc res;
     if ((res = _ykpiv_select_application(state, state->scp11_state.security_level)) != YKPIV_OK)
-      return res;
+      goto Cleanup;
     if(state->serial != serial) {
       DBG("Card #%u detected, was expecting card #%u", state->serial, serial);
-      return YKPIV_GENERIC_ERROR;
+      res = YKPIV_GENERIC_ERROR;
+      goto Cleanup;
     }
     if(state->mgm_key) {
       if((res = _ykpiv_authenticate2(state, state->mgm_key, state->mgm_len)) != YKPIV_OK)
-        return res;
+        goto Cleanup;
     }
     if (state->pin) {
       size_t pin_len = strlen(state->pin);
       if((res = _ykpiv_verify(state, state->pin, &pin_len, false, false)) != YKPIV_OK)
-        return res;
+        goto Cleanup;
       // De-authenticate always-authenticate keys by running an arbitrary command
       unsigned char data[80] = {0};
       unsigned long recv_len = sizeof(data);
       if((res = _ykpiv_fetch_object(state, YKPIV_OBJ_DISCOVERY, data, &recv_len)) != YKPIV_OK)
-        return res;
+        goto Cleanup;
     }
+    return YKPIV_OK;
+Cleanup:
+    // Callers only end the transaction when this succeeds.
+    _ykpiv_end_transaction(state);
+    return res;
   }
 #endif /* ENABLE_IMPLICIT_TRANSACTIONS */
   return YKPIV_OK;
