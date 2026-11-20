@@ -174,6 +174,7 @@ struct ykpiv_state {
   ykpiv_version_t ver;
   uint32_t serial;
   ykpiv_scp11_state scp11_state;
+  bool scp11_requested;
 };
 
 union u_APDU {
